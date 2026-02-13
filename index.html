@@ -7,7 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <meta property="og:image" content="2.jpeg">
+    <meta property="og:image" content="https://raw.githubusercontent.com/cass-0820/Typ_dark/refs/heads/main/2.jpeg">
     <title>프로젝트 비주얼 보드 (Dark Mode)</title>
     <style>
         /* === 기본 스타일 (다크 모드 적용) === */
@@ -237,3 +237,384 @@
 
     </style>
 </head>
+<body>
+
+    <div class="top-nav" id="topNav">
+        <button class="add-tab-btn" id="btnAddTab" title="새 노트 추가">+</button>
+    </div>
+
+    <div class="main-container">
+        <div id="canvasArea">
+            <div id="canvasSizer"></div>
+            <div class="canvas-toolbar">
+                <button class="canvas-btn" onclick="document.getElementById('imgInput').click()">📷 사진 추가</button>
+                <div style="width:1px; height:15px; background:#ccc; margin: 0 10px;"></div>
+                <button class="canvas-btn" onclick="addMemoItem()">📝 메모 추가</button>
+            </div>
+        </div>
+
+        <div id="textEditorArea">
+            <div id="markdownPreview"></div>
+            <textarea id="textInput" placeholder="이곳에 내용을 입력하세요..."></textarea>
+        </div>
+
+        <div class="floating-panel" id="floatingPanel">
+            <div class="panel-header" id="dragHandle">
+                <span class="drag-label">:: Tool Box</span>
+                <button id="btnMinimize">_</button>
+            </div>
+            <div class="panel-content">
+                <div class="btn-row">
+                    <button class="icon-btn" id="btnSaveJson" title="저장"><svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg></button>
+                    <button class="icon-btn" id="btnLoadJson" title="불러오기"><svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg></button>
+                    
+                    <button class="icon-btn" id="btnResetAll" title="모두 삭제(초기화)" onclick="resetAllData()"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+                    
+                    <div class="sep" id="undoSep"></div>
+                    
+                    <button class="icon-btn" id="btnUndo" title="실행 취소"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+                    <button class="icon-btn" id="btnRedo" title="다시 실행"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+
+                    <div class="sep"></div>
+                    <button class="icon-btn" id="btnPreview" title="미리보기"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+                    
+                    <button class="icon-btn" id="btnSymbol" title="특수문자"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></button>
+                </div>
+
+                <div class="symbol-palette" id="symbolPalette"></div>
+                
+                <div class="stats-info">
+                    <div class="stat-line"><span>AI 토큰</span><span class="stat-val" id="totalToken">0</span></div>
+                    <div class="stat-line"><span>글자수</span><span class="stat-val" id="totalChar">0</span></div>
+                    <div class="stat-line" id="selectionRow" style="display:none;"><span>선택</span><span class="stat-val selection-active" id="selectChar">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="saveIndicator">저장 중...</div>
+
+    <input type="file" id="imgInput" style="display:none" accept="image/*" onchange="addCanvasImage(this)">
+    <input type="file" id="fileInput" style="display:none" accept=".json">
+    <div id="toast" class="toast">메시지</div>
+
+<script>
+    let pages = [], curPageIndex = 0;
+    let canvasItems = [], selectedId = null;
+    let draggedItem = null, resizeItem = null, draggedDOM = null, resizeDOM = null;
+    let isDragging = false, isPanelDragging = false; 
+    let startX, startY, initialX, initialY, initialW, initialH;
+    let pStartX, pStartY, pIL, pIT; 
+    let isPreviewMode = false;
+
+    // === IndexedDB 설정 ===
+    const DB_NAME = 'ProjectBoardDB';
+    const STORE_NAME = 'pages';
+    let db = null;
+    let saveTimeout = null;
+
+    const topNav = document.getElementById('topNav'), textEditorArea = document.getElementById('textEditorArea'), canvasArea = document.getElementById('canvasArea');
+    const textInput = document.getElementById('textInput'), btnAddTab = document.getElementById('btnAddTab'), btnPreview = document.getElementById('btnPreview'), markdownPreview = document.getElementById('markdownPreview'), toast = document.getElementById('toast');
+    const panel = document.getElementById('floatingPanel'), btnMinimize = document.getElementById('btnMinimize'), dragHandle = document.getElementById('dragHandle');
+    const saveIndicator = document.getElementById('saveIndicator');
+
+    function initDB() {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (e) => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains(STORE_NAME)) {
+                d.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            loadFromDB(); 
+        };
+        request.onerror = (e) => console.error("DB Error", e);
+    }
+
+    function loadFromDB() {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get('my_project_data');
+
+        req.onsuccess = () => {
+            if (req.result) {
+                pages = req.result.data;
+            } else {
+                const localData = localStorage.getItem('my_project_v3_layer_dots');
+                if (localData) {
+                    try { pages = JSON.parse(localData); } catch(e) { resetPages(); }
+                } else {
+                    resetPages();
+                }
+            }
+            if(!pages.length) resetPages();
+            curPageIndex = 0; renderTabs(); loadPage(0);
+        };
+    }
+
+    // === 데이터 완전 초기화 함수 ===
+    function resetAllData() {
+        if(confirm('⚠️ 경고: 모든 데이터(사진, 글)가 영구적으로 삭제됩니다.\n정말로 초기화 하시겠습니까?')) {
+            const req = indexedDB.deleteDatabase(DB_NAME);
+            req.onsuccess = () => {
+                localStorage.removeItem('my_project_v3_layer_dots');
+                alert('초기화 되었습니다.');
+                location.reload(); 
+            };
+            req.onerror = () => {
+                alert('초기화 실패. 브라우저 설정을 확인해주세요.');
+            };
+        }
+    }
+
+    function resetPages() { pages = [{ title: '🎨 비주얼 보드', type: 'canvas', content: [] }, { title: '📝 설정 노트', type: 'text', content: '# 프로젝트 설정\n' }]; }
+
+    function saveAll() {
+        if (curPageIndex === 0) pages[0].content = canvasItems;
+        else pages[curPageIndex].content = textInput.value;
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(executeSave, 500);
+    }
+
+    function executeSave() {
+        if(!db) return;
+        saveIndicator.classList.add('saving');
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.put({ id: 'my_project_data', data: pages });
+        req.onsuccess = () => { setTimeout(() => { saveIndicator.classList.remove('saving'); }, 500); };
+        req.onerror = () => { saveIndicator.classList.remove('saving'); };
+    }
+
+    function renderTabs() {
+        document.querySelectorAll('.tab-item').forEach(e => e.remove());
+        pages.forEach((page, idx) => {
+            const tab = document.createElement('div');
+            tab.className = `tab-item ${idx === curPageIndex ? 'active' : ''}`;
+            let html = `<span>${page.title}</span>`;
+            if (idx > 0) html += `<span class="tab-close" onclick="deletePage(event, ${idx})">×</span>`;
+            tab.innerHTML = html;
+            tab.onclick = (e) => { if(!e.target.classList.contains('tab-close')) switchPage(idx); };
+            tab.ondblclick = () => { const t = prompt('탭 이름:', page.title); if(t) { pages[idx].title = t; saveAll(); renderTabs(); } };
+            topNav.insertBefore(tab, btnAddTab);
+        });
+    }
+    function switchPage(idx) { 
+        if (curPageIndex === 0) pages[0].content = canvasItems; else pages[curPageIndex].content = textInput.value;
+        saveAll(); curPageIndex = idx; renderTabs(); loadPage(idx); 
+    }
+    function deletePage(e, idx) { e.stopPropagation(); if(confirm('삭제?')) { pages.splice(idx, 1); if(curPageIndex >= pages.length) curPageIndex = pages.length -1; saveAll(); renderTabs(); loadPage(curPageIndex); } }
+
+    function loadPage(idx) {
+        isPreviewMode = false; markdownPreview.style.display = 'none'; textInput.style.display = 'block'; btnPreview.classList.remove('active');
+        
+        // Tool Box 버튼 요소들 가져오기
+        const btnUndo = document.getElementById('btnUndo');
+        const btnRedo = document.getElementById('btnRedo');
+        const btnResetAll = document.getElementById('btnResetAll');
+        const undoSep = document.getElementById('undoSep');
+
+        if (idx === 0) {
+            // === 비주얼 보드 모드 ===
+            textEditorArea.style.display = 'none'; canvasArea.style.display = 'block'; btnPreview.style.display = 'none';
+            document.querySelector('.stats-info').style.display = 'none'; 
+            
+            // 버튼 상태 제어
+            btnResetAll.style.display = 'flex'; // 초기화 버튼 보이기
+            btnUndo.style.display = 'none';     // 실행취소 숨기기
+            btnRedo.style.display = 'none';     // 다시실행 숨기기
+            if(undoSep) undoSep.style.display = 'none'; // 구분선 숨기기
+
+            canvasItems = pages[0].content || []; renderCanvasItems();
+        } else {
+            // === 텍스트 에디터 모드 ===
+            canvasArea.style.display = 'none'; textEditorArea.style.display = 'block'; btnPreview.style.display = 'flex';
+            document.querySelector('.stats-info').style.display = 'flex';
+            
+            // 버튼 상태 제어
+            btnResetAll.style.display = 'none'; // 초기화 버튼 숨기기
+            btnUndo.style.display = 'flex';     // 실행취소 보이기
+            btnRedo.style.display = 'flex';     // 다시실행 보이기
+            if(undoSep) undoSep.style.display = 'block'; // 구분선 보이기
+
+            textInput.value = pages[idx].content || ''; updateCounts();
+        }
+    }
+    btnAddTab.onclick = () => { 
+        if (curPageIndex === 0) pages[0].content = canvasItems; else pages[curPageIndex].content = textInput.value;
+        pages.push({ title: `노트 ${pages.length}`, type: 'text', content: '' }); 
+        saveAll(); switchPage(pages.length - 1); 
+    };
+
+    function renderCanvasItems() {
+        const existing = canvasArea.querySelectorAll('.item'); existing.forEach(e => e.remove());
+        canvasItems.forEach(item => {
+            const el = document.createElement('div');
+            el.className = `item ${item.id === selectedId ? 'selected' : ''}`;
+            el.id = `item-${item.id}`;
+            el.setAttribute('data-title', item.title || "");
+            el.style.left = item.x + 'px'; el.style.top = item.y + 'px';
+            el.style.width = item.width + 'px'; el.style.height = item.type === 'image' ? 'auto' : item.height + 'px';
+            el.style.background = item.type === 'memo' ? item.color : 'transparent';
+            el.style.zIndex = item.zIndex || 1;
+            if(item.type === 'memo') el.style.padding = '20px';
+            
+            const startHandler = (e) => handleCanvasStart(e, item, el);
+            el.onmousedown = startHandler; el.ontouchstart = startHandler;
+
+            let html = '';
+            html += `<div class="config-panel" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+                <button class="config-btn" onclick="changeZIndex(${item.id}, 'front')">맨앞</button>
+                <button class="config-btn" onclick="changeZIndex(${item.id}, 'back')">맨뒤</button>
+                <div class="v-sep"></div>
+                <button class="config-btn delete-btn" onclick="deleteCanvasItem(${item.id})">삭제</button>`;
+            if(item.type === 'memo') html += `<div class="v-sep"></div><div class="color-dot" style="background:#fff9c4" onclick="setCanvasColor(${item.id},'#fff9c4')"></div><div class="color-dot" style="background:#b3e5fc" onclick="setCanvasColor(${item.id},'#b3e5fc')"></div><div class="color-dot" style="background:#dcedc8" onclick="setCanvasColor(${item.id},'#dcedc8')"></div><div class="color-dot" style="background:#ffcdd2" onclick="setCanvasColor(${item.id},'#ffcdd2')"></div>`;
+            html += `</div>`;
+            
+            html += `<div class="tag">${item.title}</div>`;
+            if(item.type === 'memo') html += `<input class="item-input-title" value="${item.title}" placeholder="제목" oninput="updateCanvasTitle(${item.id}, this.value)" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()"><textarea class="item-textarea" oninput="updateCanvasContent(${item.id}, this.value)" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${item.content}</textarea>`;
+            else html += `<img src="${item.content}">`;
+            
+            html += `<div class="resize-handle" onmousedown="startCanvasResize(event, ${item.id})" ontouchstart="startCanvasResize(event, ${item.id})"></div>`;
+            el.innerHTML = html; canvasArea.appendChild(el);
+        });
+    }
+
+    function getMaxZ() { return Math.max(0, ...canvasItems.map(i => i.zIndex || 1)); }
+
+    function addMemoItem() { 
+        const currentScroll = canvasArea.scrollTop;
+        canvasItems.push({ 
+            id: Date.now(), x: 100, y: currentScroll + 100,
+            width: 260, height: 180, 
+            type: 'memo', title: '', content: '', color: '#fff9c4',
+            zIndex: getMaxZ() + 1 
+        }); 
+        renderCanvasItems(); saveAll(); 
+    }
+    
+    function addCanvasImage(input) {
+        const file = input.files[0]; if(!file) return;
+        const currentScroll = canvasArea.scrollTop;
+        const reader = new FileReader(); reader.onload = (e) => { 
+            canvasItems.push({ 
+                id: Date.now(), x: 150, y: currentScroll + 150,
+                width: 300, height: 0, 
+                type: 'image', content: e.target.result,
+                zIndex: getMaxZ() + 1
+            }); 
+            renderCanvasItems(); saveAll(); 
+        }; reader.readAsDataURL(file); input.value = '';
+    }
+    
+    window.changeZIndex = (id, direction) => {
+        const item = canvasItems.find(i => i.id === id); if(!item) return;
+        const zIndexes = canvasItems.map(i => i.zIndex || 1);
+        if (direction === 'front') item.zIndex = Math.max(...zIndexes, 0) + 1;
+        else item.zIndex = Math.min(...zIndexes, 9999) - 1;
+        renderCanvasItems(); saveAll();
+    };
+
+    const bgHandler = (e) => { if(e.target===canvasArea) { selectedId=null; renderCanvasItems(); } };
+    canvasArea.onmousedown = bgHandler; canvasArea.ontouchstart = bgHandler;
+
+    function handleCanvasStart(e, item, element) {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.config-panel') || e.target.classList.contains('resize-handle')) return;
+        if(e.cancelable && !e.target.tagName.match(/INPUT|TEXTAREA/)) { e.preventDefault(); }
+        selectedId = item.id; draggedItem = item; isDragging = true;
+        const c = e.type.includes('touch') ? e.changedTouches[0] : e;
+        startX = c.clientX; startY = c.clientY; 
+        initialX = item.x; initialY = item.y;
+        renderCanvasItems(); draggedDOM = document.getElementById(`item-${item.id}`);
+    }
+
+    function startCanvasResize(e, id) {
+        e.stopPropagation(); 
+        if(e.type==='touchstart' && e.cancelable) e.preventDefault();
+        resizeItem = canvasItems.find(i => i.id === id); resizeDOM = document.getElementById(`item-${id}`);
+        const c = e.type.includes('touch') ? e.changedTouches[0] : e;
+        startX = c.clientX; startY = c.clientY; initialW = resizeItem.width; initialH = resizeItem.height;
+    }
+
+    const startPanelDrag = (e) => {
+        if(e.target === btnMinimize) return;
+        if(e.type === 'touchstart' && e.cancelable) e.preventDefault();
+        isPanelDragging = true; 
+        const c = e.type.includes('touch') ? e.changedTouches[0] : e;
+        pStartX = c.clientX; pStartY = c.clientY;
+        const r = panel.getBoundingClientRect(); pIL = r.left; pIT = r.top;
+        panel.style.right = 'auto'; panel.style.left = pIL + 'px'; panel.style.top = pIT + 'px';
+    }
+    dragHandle.onmousedown = startPanelDrag; dragHandle.ontouchstart = startPanelDrag;
+
+    const onGlobalMove = (e) => {
+        if ((isDragging || resizeItem || isPanelDragging) && e.cancelable) { e.preventDefault(); }
+        const c = e.type.includes('touch') ? e.changedTouches[0] : e;
+        
+        if(isDragging && curPageIndex === 0 && draggedItem && draggedDOM) {
+            draggedItem.x = initialX + c.clientX - startX; 
+            draggedItem.y = initialY + c.clientY - startY;
+            draggedDOM.style.left = draggedItem.x + 'px'; 
+            draggedDOM.style.top = draggedItem.y + 'px';
+        } else if(resizeItem && resizeDOM) {
+            resizeItem.width = Math.max(50, initialW + c.clientX - startX); 
+            resizeItem.height = Math.max(50, initialH + c.clientY - startY);
+            resizeDOM.style.width = resizeItem.width + 'px'; 
+            if(resizeItem.type !== 'image') resizeDOM.style.height = resizeItem.height + 'px';
+        } else if (isPanelDragging) {
+            panel.style.left = (pIL + c.clientX - pStartX) + 'px'; 
+            panel.style.top = (pIT + c.clientY - pStartY) + 'px';
+        }
+    };
+
+    const onGlobalEnd = () => { 
+        if(isDragging || resizeItem) saveAll(); 
+        isDragging = false; draggedItem = null; resizeItem = null; draggedDOM = null; resizeDOM = null; isPanelDragging = false; 
+    };
+    
+    window.addEventListener('mousemove', onGlobalMove); window.addEventListener('mouseup', onGlobalEnd);
+    window.addEventListener('touchmove', onGlobalMove, {passive: false}); 
+    window.addEventListener('touchend', onGlobalEnd);
+
+    window.updateCanvasTitle = (id, val) => { const item = canvasItems.find(i => i.id === id); if(item) { item.title = val; const el = document.getElementById(`item-${id}`); if(el) { el.setAttribute('data-title', val); const tag = el.querySelector('.tag'); if(tag) tag.textContent = val; } saveAll(); } };
+    window.updateCanvasContent = (id, val) => { const item = canvasItems.find(i => i.id === id); if(item) { item.content = val; saveAll(); } };
+    window.setCanvasColor = (id, color) => { const item = canvasItems.find(i => i.id === id); if(item) { item.color = color; saveAll(); renderCanvasItems(); } };
+    window.deleteCanvasItem = (id) => { if(confirm('삭제?')) { canvasItems = canvasItems.filter(i => i.id !== id); selectedId = null; saveAll(); renderCanvasItems(); } };
+
+    document.getElementById('btnUndo').onclick = () => { if(curPageIndex !== 0 && !isPreviewMode) { document.execCommand('undo'); textInput.focus(); }};
+    document.getElementById('btnRedo').onclick = () => { if(curPageIndex !== 0 && !isPreviewMode) { document.execCommand('redo'); textInput.focus(); }};
+    function updateCounts() {
+        const t = textInput.value; const cjk = (t.match(/[\u3131-\uD79D\uAC00-\uD7A3\u4E00-\u9FFF]/g)||[]).length;
+        document.getElementById('totalToken').textContent = Math.ceil((cjk*1.1)+((t.length-cjk)*0.25)).toLocaleString();
+        document.getElementById('totalChar').textContent = t.length.toLocaleString();
+        const s = textInput.selectionStart, e = textInput.selectionEnd;
+        const row = document.getElementById('selectionRow');
+        if(e>s) { row.style.display='flex'; document.getElementById('selectChar').textContent = (e-s).toLocaleString(); } else row.style.display='none';
+    }
+    ['input', 'click', 'mouseup', 'keyup'].forEach(ev => textInput.addEventListener(ev, () => { updateCounts(); if(ev === 'input') saveAll(); }));
+    btnPreview.onclick = () => { 
+        if(curPageIndex === 0) return;
+        if(typeof marked === 'undefined') { alert('인터넷 연결 확인'); return; }
+        if(!isPreviewMode) { markdownPreview.innerHTML = marked.parse(textInput.value); textInput.style.display = 'none'; markdownPreview.style.display = 'block'; btnPreview.classList.add('active'); showToast('미리보기'); } 
+        else { markdownPreview.style.display = 'none'; textInput.style.display = 'block'; btnPreview.classList.remove('active'); textInput.focus(); } isPreviewMode = !isPreviewMode; 
+    };
+    document.getElementById('btnSaveJson').onclick = () => { saveAll(); const blob = new Blob([JSON.stringify({version:3, pages}, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Project.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); showToast('파일 내보내기'); };
+    document.getElementById('btnLoadJson').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('fileInput').onchange = (e) => { const f = e.target.files[0]; if(!f) return; if(!confirm('덮어쓰기?')) return; const r = new FileReader(); r.onload = (evt) => { try { const d = JSON.parse(evt.target.result); if(d.pages) { pages = d.pages; curPageIndex = 0; renderTabs(); loadPage(0); saveAll(); showToast('불러오기 완료'); } } catch(e) { alert('오류'); } }; r.readAsText(f); e.target.value=''; };
+    
+    const symbols = ['# ', '- ', '**', '> ', '```', '[]()', '→', '←', '↔', '🤫', 'ⓤ', 'ⓒ', '✅', '❌', '⚠️', '💋', '🫦', '🔥', '💦', '💤', '📕', '📙', '📗', '📘', '×', '÷', '「', '」', '『', '』'];
+    const sp = document.getElementById('symbolPalette'); symbols.forEach(c => { const b = document.createElement('button'); b.className = 'sym-btn'; b.textContent = c; b.onclick = () => insertSymbol(c); sp.appendChild(b); });
+    document.getElementById('btnSymbol').onclick = () => sp.classList.toggle('show');
+    function insertSymbol(c) { if(curPageIndex===0 && selectedId) { const i = canvasItems.find(x=>x.id===selectedId); if(i&&i.type==='memo'){ i.content+=c; document.getElementById(`item-${selectedId}`).querySelector('textarea').value=i.content; saveAll(); } } else if(curPageIndex!==0 && !isPreviewMode) { const s=textInput.selectionStart,e=textInput.selectionEnd,v=textInput.value; textInput.value=v.substring(0,s)+c+v.substring(e); textInput.selectionStart=s+c.length; textInput.focus(); updateCounts(); saveAll(); } }
+    
+    function showToast(m) { toast.textContent = m; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2500); }
+    const p = document.getElementById('floatingPanel');
+    textInput.addEventListener('input', () => p.classList.add('faded'));
+    textInput.addEventListener('keyup', () => setTimeout(() => p.classList.remove('faded'), 800));
+
+    initDB();
+</script>
+</body>
+</html>
