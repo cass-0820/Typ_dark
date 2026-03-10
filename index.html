@@ -321,6 +321,7 @@
     let startX, startY, initialX, initialY, initialW, initialH;
     let pStartX, pStartY, pIL, pIT; 
     let isPreviewMode = false;
+    let draggedTabIndex = null; // 탭 드래그 앤 드롭을 위한 변수 추가
 
     // === IndexedDB 설정 ===
     const DB_NAME = 'ProjectBoardDB';
@@ -409,13 +410,60 @@
             const tab = document.createElement('div');
             tab.className = `tab-item ${idx === curPageIndex ? 'active' : ''}`;
             let html = `<span>${page.title}</span>`;
-            if (idx > 0) html += `<span class="tab-close" onclick="deletePage(event, ${idx})">×</span>`;
+            
+            // 첫 번째 탭(비주얼 보드)을 제외한 나머지 탭 드래그 앤 드롭 설정
+            if (idx > 0) {
+                html += `<span class="tab-close" onclick="deletePage(event, ${idx})">×</span>`;
+                
+                tab.draggable = true;
+                tab.ondragstart = (e) => {
+                    draggedTabIndex = idx;
+                    e.dataTransfer.effectAllowed = 'move';
+                    tab.style.opacity = '0.5';
+                };
+                tab.ondragend = () => {
+                    tab.style.opacity = '1';
+                    draggedTabIndex = null;
+                };
+                tab.ondragover = (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                };
+                tab.ondrop = (e) => {
+                    e.preventDefault();
+                    // index 0(비주얼 보드) 위치로는 드래그 드롭을 막음
+                    if (draggedTabIndex !== null && draggedTabIndex !== idx && draggedTabIndex > 0 && idx > 0) {
+                        // 현재 내용 먼저 저장
+                        if (curPageIndex === 0) pages[0].content = canvasItems;
+                        else pages[curPageIndex].content = textInput.value;
+
+                        // 배열 요소 순서 변경
+                        const movedPage = pages.splice(draggedTabIndex, 1)[0];
+                        pages.splice(idx, 0, movedPage);
+
+                        // curPageIndex 재설정
+                        if (curPageIndex === draggedTabIndex) {
+                            curPageIndex = idx;
+                        } else if (draggedTabIndex < curPageIndex && idx >= curPageIndex) {
+                            curPageIndex--;
+                        } else if (draggedTabIndex > curPageIndex && idx <= curPageIndex) {
+                            curPageIndex++;
+                        }
+
+                        saveAll();
+                        renderTabs();
+                        loadPage(curPageIndex);
+                    }
+                };
+            }
+            
             tab.innerHTML = html;
             tab.onclick = (e) => { if(!e.target.classList.contains('tab-close')) switchPage(idx); };
             tab.ondblclick = () => { const t = prompt('탭 이름:', page.title); if(t) { pages[idx].title = t; saveAll(); renderTabs(); } };
             topNav.insertBefore(tab, btnAddTab);
         });
     }
+
     function switchPage(idx) { 
         if (curPageIndex === 0) pages[0].content = canvasItems; else pages[curPageIndex].content = textInput.value;
         saveAll(); curPageIndex = idx; renderTabs(); loadPage(idx); 
@@ -628,6 +676,11 @@
     const p = document.getElementById('floatingPanel');
     textInput.addEventListener('input', () => p.classList.add('faded'));
     textInput.addEventListener('keyup', () => setTimeout(() => p.classList.remove('faded'), 800));
+
+    // 최소화 버튼 이벤트 추가
+    btnMinimize.onclick = () => {
+        panel.classList.toggle('minimized');
+    };
 
     initDB();
 </script>
